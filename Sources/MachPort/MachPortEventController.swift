@@ -23,9 +23,9 @@ public final class MachPortEventController: MachPortEventPublisher {
     set { machPort.map { CGEvent.tapEnable(tap: $0, enable: newValue) } }
   }
 
-  required init(_ eventSourceId: CGEventSourceStateID,
-                mode: CFRunLoopMode,
-                configuration: MachPortTapConfiguration = .init()) throws {
+  required public init(_ eventSourceId: CGEventSourceStateID,
+                       mode: CFRunLoopMode,
+                       configuration: MachPortTapConfiguration = .init()) throws {
     self.configuration = configuration
 
     try super.init()
