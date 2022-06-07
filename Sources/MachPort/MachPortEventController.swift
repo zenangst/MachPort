@@ -11,7 +11,7 @@ public class MachPortEventPublisher {
 
 
 public final class MachPortEventController: MachPortEventPublisher {
-  private(set) var eventSource: CGEventSource!
+  private(set) public var eventSource: CGEventSource!
 
   private var machPort: CFMachPort!
   private var runLoopSource: CFRunLoopSource!
