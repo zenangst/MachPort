@@ -2,7 +2,6 @@ import Carbon
 import Cocoa
 import os
 
-@MainActor
 public class MachPortEventPublisher {
   @Published public internal(set) var event: MachPortEvent?
 
@@ -17,6 +16,7 @@ public final class MachPortEventController: MachPortEventPublisher {
   private var runLoopSource: CFRunLoopSource!
   private var lhs: Bool = true
 
+  private let signature: Int64
   private let configuration: MachPortTapConfiguration
 
   public var isEnabled: Bool {
@@ -25,8 +25,10 @@ public final class MachPortEventController: MachPortEventPublisher {
   }
 
   required public init(_ eventSourceId: CGEventSourceStateID,
+                       signature: String,
                        mode: CFRunLoopMode,
                        configuration: MachPortTapConfiguration = .init()) throws {
+    self.signature = Int64(signature.hashValue)
     self.configuration = configuration
 
     try super.init()
@@ -43,9 +45,36 @@ public final class MachPortEventController: MachPortEventPublisher {
     fatalError("init() has not been implemented")
   }
 
+  // MARK: Public methods
+
+  public func post(_ key: Int,
+                   type: CGEventType,
+                   flags: CGEventFlags,
+                   tapLocation: CGEventTapLocation = .cghidEventTap) throws {
+    guard let cgKeyCode = CGKeyCode(exactly: key) else {
+      throw MachPortError.failedToCreateKeyCode(key)
+    }
+
+    guard let cgEvent = CGEvent(keyboardEventSource: eventSource,
+                                virtualKey: cgKeyCode,
+                                keyDown: type == .keyDown) else {
+      throw MachPortError.failedToCreateEvent
+    }
+
+    cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
+    cgEvent.flags = flags
+    cgEvent.post(tap: tapLocation)
+  }
+
+  // MARK: Private methods
+
   private func callback(_ proxy: CGEventTapProxy, _ type: CGEventType,
                         _ cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
     let result: Unmanaged<CGEvent>? = Unmanaged.passUnretained(cgEvent)
+    if cgEvent.getIntegerValueField(.eventSourceUserData) == signature {
+      return result
+    }
+
     if type == .flagsChanged {
       self.lhs = determineModifierKeysLocation(cgEvent)
     }
@@ -60,8 +89,6 @@ public final class MachPortEventController: MachPortEventPublisher {
 
     return newEvent.result
   }
-
-  // MARK: Private methods
 
   private func determineModifierKeysLocation(_ cgEvent: CGEvent) -> Bool {
     var result: Bool = true
@@ -86,8 +113,8 @@ public final class MachPortEventController: MachPortEventPublisher {
 
   private func createMachPort() throws -> CFMachPort {
     let mask: CGEventMask = 1 << CGEventType.keyDown.rawValue
-      | 1 << CGEventType.keyUp.rawValue
-      | 1 << CGEventType.flagsChanged.rawValue
+    | 1 << CGEventType.keyUp.rawValue
+    | 1 << CGEventType.flagsChanged.rawValue
     let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
     guard let machPort = CGEvent.tapCreate(
@@ -106,7 +133,6 @@ public final class MachPortEventController: MachPortEventPublisher {
       }, userInfo: userInfo) else {
       throw MachPortError.failedToCreateMachPort
     }
-
     return machPort
   }
 }
