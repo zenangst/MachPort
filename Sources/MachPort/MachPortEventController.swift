@@ -50,7 +50,8 @@ public final class MachPortEventController: MachPortEventPublisher {
   public func post(_ key: Int,
                    type: CGEventType,
                    flags: CGEventFlags,
-                   tapLocation: CGEventTapLocation = .cghidEventTap) throws {
+                   tapLocation: CGEventTapLocation = .cghidEventTap,
+                   configure: (CGEvent) -> Void = { _ in }) throws {
     guard let cgKeyCode = CGKeyCode(exactly: key) else {
       throw MachPortError.failedToCreateKeyCode(key)
     }
@@ -63,6 +64,9 @@ public final class MachPortEventController: MachPortEventPublisher {
 
     cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
     cgEvent.flags = flags
+
+    configure(cgEvent)
+
     cgEvent.post(tap: tapLocation)
   }
 
