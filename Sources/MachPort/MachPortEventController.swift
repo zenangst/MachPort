@@ -3,6 +3,7 @@ import Cocoa
 import os
 
 public class MachPortEventPublisher {
+  @Published public internal(set) var flagsChanged: CGEventFlags?
   @Published public internal(set) var event: MachPortEvent?
 
   required init() throws {}
@@ -87,7 +88,9 @@ public final class MachPortEventController: MachPortEventPublisher {
                                  lhs: self.lhs,
                                  type: type, result: result)
 
-    if type != .flagsChanged {
+    if type == .flagsChanged {
+      flagsChanged = cgEvent.flags
+    } else {
       event = newEvent
     }
 
