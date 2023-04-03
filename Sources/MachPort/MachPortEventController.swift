@@ -13,10 +13,11 @@ public class MachPortEventPublisher {
 public final class MachPortEventController: MachPortEventPublisher {
   private(set) public var eventSource: CGEventSource!
 
-  private var machPort: CFMachPort!
-  private var runLoopSource: CFRunLoopSource!
+  private var machPort: CFMachPort?
+  private var runLoopSource: CFRunLoopSource?
   private var lhs: Bool = true
 
+  private let eventSourceId: CGEventSourceStateID
   private let signature: Int64
   private let configuration: MachPortTapConfiguration
 
@@ -27,20 +28,15 @@ public final class MachPortEventController: MachPortEventPublisher {
 
   required public init(_ eventSourceId: CGEventSourceStateID,
                        signature: String,
-                       mode: CFRunLoopMode,
-                       configuration: MachPortTapConfiguration = .init()) throws {
+                       configuration: MachPortTapConfiguration = .init(),
+                       autoStartMode: CFRunLoopMode? = .commonModes) throws {
+    self.eventSourceId = eventSourceId
     self.signature = Int64(signature.hashValue)
     self.configuration = configuration
-
     try super.init()
-
-    let machPort = try createMachPort()
-
-    self.eventSource = try CGEventSource.create(eventSourceId)
-    self.machPort = machPort
-    self.runLoopSource = try CFRunLoopSource.create(with: machPort)
-    CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, mode)
+    if let autoStartMode { try start(mode: autoStartMode) }
   }
+
 
   required init() throws {
     fatalError("init() has not been implemented")
@@ -48,9 +44,30 @@ public final class MachPortEventController: MachPortEventPublisher {
 
   // MARK: Public methods
 
-  public func post(_ key: Int,
-                   type: CGEventType,
-                   flags: CGEventFlags,
+  public func start(in runLoop: CFRunLoop = CFRunLoopGetMain(),
+                    mode: CFRunLoopMode) throws {
+    let machPort = try createMachPort()
+    self.eventSource = try CGEventSource.create(eventSourceId)
+    self.machPort = machPort
+    self.runLoopSource = try CFRunLoopSource.create(with: machPort)
+
+    CFRunLoopAddSource(runLoop, runLoopSource, mode)
+  }
+
+  public func stop(in runLoop: CFRunLoop = CFRunLoopGetMain(), mode: CFRunLoopMode) {
+    CFRunLoopRemoveSource(runLoop, runLoopSource, mode)
+    guard let machPort else { return }
+    CFMachPortInvalidate(machPort)
+    self.runLoopSource = nil
+  }
+
+  public func reload(in runLoop: CFRunLoop = CFRunLoopGetMain(),
+                     mode: CFRunLoopMode) throws {
+    try stop(mode: mode)
+    try start(mode: mode)
+  }
+
+  public func post(_ key: Int, type: CGEventType, flags: CGEventFlags,
                    tapLocation: CGEventTapLocation = .cghidEventTap,
                    configure: (CGEvent) -> Void = { _ in }) throws {
     guard let cgKeyCode = CGKeyCode(exactly: key) else {
