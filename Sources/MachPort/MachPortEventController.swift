@@ -16,6 +16,7 @@ public final class MachPortEventController: MachPortEventPublisher {
   private var machPort: CFMachPort?
   private var runLoopSource: CFRunLoopSource?
   private var lhs: Bool = true
+  private var currentMode: CFRunLoopMode = .commonModes
 
   private let eventSourceId: CGEventSourceStateID
   private let signature: Int64
@@ -49,6 +50,7 @@ public final class MachPortEventController: MachPortEventPublisher {
     let machPort = try createMachPort()
     self.eventSource = try CGEventSource.create(eventSourceId)
     self.machPort = machPort
+    self.currentMode = mode
     self.runLoopSource = try CFRunLoopSource.create(with: machPort)
 
     CFRunLoopAddSource(runLoop, runLoopSource, mode)
@@ -92,6 +94,10 @@ public final class MachPortEventController: MachPortEventPublisher {
 
   private func callback(_ proxy: CGEventTapProxy, _ type: CGEventType,
                         _ cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
+    if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+      try? reload(mode: currentMode)
+    }
+
     let result: Unmanaged<CGEvent>? = Unmanaged.passUnretained(cgEvent)
     if cgEvent.getIntegerValueField(.eventSourceUserData) == signature {
       return result
