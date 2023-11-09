@@ -65,7 +65,7 @@ public final class MachPortEventController: MachPortEventPublisher {
 
   public func reload(in runLoop: CFRunLoop = CFRunLoopGetMain(),
                      mode: CFRunLoopMode) throws {
-    try stop(mode: mode)
+    stop(mode: mode)
     try start(mode: mode)
   }
 
