@@ -105,17 +105,15 @@ public final class MachPortEventController: MachPortEventPublisher {
 
     if type == .flagsChanged {
       self.lhs = determineModifierKeysLocation(cgEvent)
+      flagsChanged = cgEvent.flags
+      return result
     }
 
     let newEvent = MachPortEvent(event: cgEvent, eventSource: eventSource,
                                  lhs: self.lhs,
                                  type: type, result: result)
 
-    if type == .flagsChanged {
-      flagsChanged = cgEvent.flags
-    } else {
-      event = newEvent
-    }
+    event = newEvent
 
     return newEvent.result
   }
