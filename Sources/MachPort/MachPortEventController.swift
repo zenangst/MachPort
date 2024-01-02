@@ -18,6 +18,7 @@ public final class MachPortEventController: MachPortEventPublisher {
   private var lhs: Bool = true
   private var currentMode: CFRunLoopMode = .commonModes
 
+  private let eventsOfInterest: CGEventMask
   private let eventSourceId: CGEventSourceStateID
   private let signature: Int64
   private let configuration: MachPortTapConfiguration
@@ -28,9 +29,17 @@ public final class MachPortEventController: MachPortEventPublisher {
   }
 
   required public init(_ eventSourceId: CGEventSourceStateID,
+                       eventsOfInterest: CGEventMask? = nil,
                        signature: String,
                        configuration: MachPortTapConfiguration = .init(),
                        autoStartMode: CFRunLoopMode? = .commonModes) throws {
+    if let eventsOfInterest {
+      self.eventsOfInterest = eventsOfInterest
+    } else {
+      self.eventsOfInterest = 1 << CGEventType.keyDown.rawValue
+      | 1 << CGEventType.keyUp.rawValue
+      | 1 << CGEventType.flagsChanged.rawValue
+    }
     self.eventSourceId = eventSourceId
     self.signature = Int64(signature.hashValue)
     self.configuration = configuration
@@ -140,16 +149,13 @@ public final class MachPortEventController: MachPortEventPublisher {
   }
 
   private func createMachPort() throws -> CFMachPort {
-    let mask: CGEventMask = 1 << CGEventType.keyDown.rawValue
-    | 1 << CGEventType.keyUp.rawValue
-    | 1 << CGEventType.flagsChanged.rawValue
     let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
     guard let machPort = CGEvent.tapCreate(
       tap: configuration.location,
       place: configuration.place,
       options: configuration.options,
-      eventsOfInterest: mask,
+      eventsOfInterest: eventsOfInterest,
       callback: { proxy, type, event, userInfo in
         if let pointer = userInfo {
           let controller = Unmanaged<MachPortEventController>
