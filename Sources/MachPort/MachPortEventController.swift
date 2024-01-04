@@ -132,7 +132,7 @@ public final class MachPortEventController: MachPortEventPublisher {
     } else {
       event = newEvent
     }
-    return result
+    return newEvent.result
   }
 
   private final func determineModifierKeysLocation(_ cgEvent: CGEvent) -> Bool {
