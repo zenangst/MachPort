@@ -18,7 +18,7 @@ public final class MachPortEventController: MachPortEventPublisher {
   private static var lhs: Bool = true
   private var currentMode: CFRunLoopMode = .commonModes
   public var onEventChange: ((MachPortEvent) -> Void)? = nil
-  public var onFlagsChanged: ((CGEventFlags) -> Void)? = nil
+  public var onFlagsChanged: ((MachPortEvent) -> Void)? = nil
 
   private let eventsOfInterest: CGEventMask
   private let eventSourceId: CGEventSourceStateID
@@ -35,7 +35,7 @@ public final class MachPortEventController: MachPortEventPublisher {
                        signature: String,
                        configuration: MachPortTapConfiguration = .init(),
                        autoStartMode: CFRunLoopMode? = .commonModes,
-                       onFlagsChanged: ((CGEventFlags) -> Void)? = nil,
+                       onFlagsChanged: ((MachPortEvent) -> Void)? = nil,
                        onEventChange: ((MachPortEvent) -> Void)? = nil) throws {
     if let eventsOfInterest {
       self.eventsOfInterest = eventsOfInterest
@@ -112,21 +112,21 @@ public final class MachPortEventController: MachPortEventPublisher {
     if cgEvent.getIntegerValueField(.eventSourceUserData) == signature {
       return Unmanaged.passUnretained(cgEvent)
     }
-
-    if type == .flagsChanged {
-      Self.lhs = determineModifierKeysLocation(cgEvent)
-      if let onFlagsChanged {
-        onFlagsChanged(cgEvent.flags)
-      } else {
-        flagsChanged = cgEvent.flags
-      }
-      return Unmanaged.passUnretained(cgEvent)
-    }
-
     let result = Unmanaged.passUnretained(cgEvent)
     let newEvent = MachPortEvent(event: cgEvent, eventSource: eventSource,
                                  lhs: Self.lhs, type: type,
                                  result: result)
+
+    if type == .flagsChanged {
+      Self.lhs = determineModifierKeysLocation(cgEvent)
+      if let onFlagsChanged {
+        onFlagsChanged(newEvent)
+      } else {
+        flagsChanged = cgEvent.flags
+      }
+      return newEvent.result
+    }
+
     if let onEventChange {
       onEventChange(newEvent)
     } else {
