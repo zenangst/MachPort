@@ -105,6 +105,26 @@ public final class MachPortEventController: MachPortEventPublisher {
     cgEvent.post(tap: tapLocation)
   }
 
+  public func post(mouseButton: CGMouseButton,
+                   mouseType: CGEventType,
+                   tapLocation: CGEventTapLocation = .cghidEventTap,
+                   clickCount: Int64 = 1,
+                   location: CGPoint) {
+    guard let cgEvent = CGEvent(
+      mouseEventSource: eventSource,
+      mouseType: mouseType,
+      mouseCursorPosition: location,
+      mouseButton: mouseButton
+    ) else {
+      return
+    }
+    cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
+    if clickCount > 1 {
+      cgEvent.setIntegerValueField(.mouseEventClickState, value: clickCount)
+    }
+    cgEvent.post(tap: tapLocation)
+  }
+
   // MARK: Private methods
 
   private final func callback(_ proxy: CGEventTapProxy, _ type: CGEventType,
