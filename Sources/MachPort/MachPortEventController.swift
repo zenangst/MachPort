@@ -83,9 +83,10 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     try start(mode: mode)
   }
 
+  @discardableResult
   public func post(_ key: Int, type: CGEventType, flags: CGEventFlags,
                    tapLocation: CGEventTapLocation = .cghidEventTap,
-                   configure: (CGEvent) -> Void = { _ in }) throws {
+                   configure: (CGEvent) -> Void = { _ in }) throws -> CGEvent {
     guard let cgKeyCode = CGKeyCode(exactly: key) else {
       throw MachPortError.failedToCreateKeyCode(key)
     }
@@ -102,6 +103,8 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     configure(cgEvent)
 
     cgEvent.post(tap: tapLocation)
+
+    return cgEvent
   }
 
   public func post(mouseButton: CGMouseButton,
