@@ -9,8 +9,7 @@ public class MachPortEventPublisher {
   required init() throws {}
 }
 
-
-public final class MachPortEventController: MachPortEventPublisher {
+public final class MachPortEventController: MachPortEventPublisher, @unchecked Sendable {
   private(set) public var eventSource: CGEventSource!
 
   private var machPort: CFMachPort?
