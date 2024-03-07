@@ -18,6 +18,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   private var currentMode: CFRunLoopMode = .commonModes
   public var onEventChange: ((MachPortEvent) -> Void)? = nil
   public var onFlagsChanged: ((MachPortEvent) -> Void)? = nil
+  public var onAllEventChange: ((MachPortEvent) -> Void)? = nil
 
   private let eventsOfInterest: CGEventMask
   private let eventSourceId: CGEventSourceStateID
@@ -34,6 +35,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
                        signature: String,
                        configuration: MachPortTapConfiguration = .init(),
                        autoStartMode: CFRunLoopMode? = .commonModes,
+                       onAllEventChange: ((MachPortEvent) -> Void)? = nil,
                        onFlagsChanged: ((MachPortEvent) -> Void)? = nil,
                        onEventChange: ((MachPortEvent) -> Void)? = nil) throws {
     if let eventsOfInterest {
@@ -48,6 +50,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     self.configuration = configuration
     self.onEventChange = onEventChange
     self.onFlagsChanged = onFlagsChanged
+    self.onAllEventChange = onAllEventChange
     try super.init()
     if let autoStartMode { try start(mode: autoStartMode) }
   }
@@ -138,6 +141,14 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     let newEvent = MachPortEvent(event: cgEvent, eventSource: eventSource,
                                  lhs: Self.lhs, type: type,
                                  result: result)
+
+    if let onAllEventChange {
+      if type == .flagsChanged {
+        Self.lhs = determineModifierKeysLocation(cgEvent)
+      }
+      onAllEventChange(newEvent)
+      return newEvent.result
+    }
 
     if type == .flagsChanged {
       Self.lhs = determineModifierKeysLocation(cgEvent)
