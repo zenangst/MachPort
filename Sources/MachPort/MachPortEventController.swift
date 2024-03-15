@@ -12,6 +12,7 @@ public class MachPortEventPublisher {
 public final class MachPortEventController: MachPortEventPublisher, @unchecked Sendable {
   private(set) public var eventSource: CGEventSource!
 
+  private var previousId: UUID?
   private var machPort: CFMachPort?
   private var runLoopSource: CFRunLoopSource?
   private static var lhs: Bool = true
@@ -137,10 +138,37 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     if cgEvent.getIntegerValueField(.eventSourceUserData) == signature {
       return Unmanaged.passUnretained(cgEvent)
     }
+
+    let isRepeat = cgEvent.getIntegerValueField(.keyboardEventAutorepeat) == 1
+    let id: UUID
+
+    switch cgEvent.type {
+    case .keyUp:
+      if let previousId {
+        id = previousId
+      } else {
+        id = UUID()
+      }
+      previousId = nil
+    case .keyDown:
+      if isRepeat, let previousId {
+        id = previousId
+      } else {
+        id = UUID()
+        previousId = id
+      }
+    default:
+      previousId = nil
+      id = UUID()
+    }
+
     let result = Unmanaged.passUnretained(cgEvent)
-    let newEvent = MachPortEvent(event: cgEvent, eventSource: eventSource,
-                                 lhs: Self.lhs, type: type,
-                                 result: result)
+    let newEvent = MachPortEvent(
+      id: id,
+      event: cgEvent, eventSource: eventSource,
+      isRepeat: isRepeat,
+      lhs: Self.lhs, type: type,
+      result: result)
 
     if let onAllEventChange {
       if type == .flagsChanged {
