@@ -63,7 +63,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
 
   // MARK: Public methods
 
-  public func start(in runLoop: CFRunLoop = CFRunLoopGetMain(),
+  public func start(in runLoop: CFRunLoop = CFRunLoopGetCurrent(),
                     mode: CFRunLoopMode) throws {
     let machPort = try createMachPort(mode)
     self.eventSource = try CGEventSource.create(eventSourceId)
@@ -81,10 +81,14 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     self.runLoopSource = nil
   }
 
-  public func reload(in runLoop: CFRunLoop = CFRunLoopGetMain(),
+  public func reload(in runLoop: CFRunLoop = CFRunLoopGetCurrent(),
                      mode: CFRunLoopMode) throws {
-    stop(mode: mode)
-    try start(mode: mode)
+    guard let machPort else {
+      stop(mode: mode)
+      try start(mode: mode)
+      return
+    }
+    CGEvent.tapEnable(tap: machPort, enable: true)
   }
 
   @discardableResult
