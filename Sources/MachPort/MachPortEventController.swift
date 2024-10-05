@@ -70,6 +70,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     self.machPort = machPort
     self.currentMode = mode
     self.runLoopSource = try CFRunLoopSource.create(with: machPort)
+    self.isEnabled = true
 
     CFRunLoopAddSource(runLoop, runLoopSource, mode)
   }
@@ -77,6 +78,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   public func stop(in runLoop: CFRunLoop = CFRunLoopGetMain(), mode: CFRunLoopMode) {
     CFRunLoopRemoveSource(runLoop, runLoopSource, mode)
     guard let machPort else { return }
+    self.isEnabled = false
     CFMachPortInvalidate(machPort)
     self.runLoopSource = nil
   }
