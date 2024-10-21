@@ -43,8 +43,8 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
       self.eventsOfInterest = eventsOfInterest
     } else {
       self.eventsOfInterest = 1 << CGEventType.keyDown.rawValue
-      | 1 << CGEventType.keyUp.rawValue
-      | 1 << CGEventType.flagsChanged.rawValue
+                            | 1 << CGEventType.keyUp.rawValue
+                            | 1 << CGEventType.flagsChanged.rawValue
     }
     self.eventSourceId = eventSourceId
     self.signature = Int64(signature.hashValue)
