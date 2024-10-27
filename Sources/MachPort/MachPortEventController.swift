@@ -10,12 +10,15 @@ public class MachPortEventPublisher {
 }
 
 public final class MachPortEventController: MachPortEventPublisher, @unchecked Sendable {
+  static let allRhs = UInt64(NX_DEVICERCTLKEYMASK) +
+                      UInt64(NX_DEVICERALTKEYMASK) +
+                      UInt64(NX_DEVICERCMDKEYMASK) +
+                      UInt64(NX_DEVICERSHIFTKEYMASK)
   private(set) public var eventSource: CGEventSource!
 
   private var previousId: UUID?
   private var machPort: CFMachPort?
   private var runLoopSource: CFRunLoopSource?
-  private static var lhs: Bool = true
   private var currentMode: CFRunLoopMode = .commonModes
   public var onEventChange: ((MachPortEvent) -> Void)? = nil
   public var onFlagsChanged: ((MachPortEvent) -> Void)? = nil
@@ -179,23 +182,21 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     }
 
     let result = Unmanaged.passUnretained(cgEvent)
+    let lhs = (cgEvent.flags.rawValue & Self.allRhs) == 0
+
     let newEvent = MachPortEvent(
       id: id,
       event: cgEvent, eventSource: eventSource,
       isRepeat: isRepeat,
-      lhs: Self.lhs, type: type,
+      lhs: lhs, type: type,
       result: result)
 
     if let onAllEventChange {
-      if type == .flagsChanged {
-        Self.lhs = determineModifierKeysLocation(cgEvent)
-      }
       onAllEventChange(newEvent)
       return newEvent.result
     }
 
     if type == .flagsChanged {
-      Self.lhs = determineModifierKeysLocation(cgEvent)
       if let onFlagsChanged {
         onFlagsChanged(newEvent)
       } else {
@@ -210,27 +211,6 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
       event = newEvent
     }
     return newEvent.result
-  }
-
-  private final func determineModifierKeysLocation(_ cgEvent: CGEvent) -> Bool {
-    var result: Bool = true
-    let emptyFlags = cgEvent.flags == CGEventFlags.maskNonCoalesced
-
-    if !emptyFlags {
-      let keyCode = cgEvent.getIntegerValueField(.keyboardEventKeycode)
-
-      // Always return `true` if the function key is involved
-      if keyCode == kVK_Function {
-        return true
-      }
-
-      let rhs: Set<Int> = [kVK_RightCommand, kVK_RightOption, kVK_RightShift]
-      result = !rhs.contains(Int(keyCode))
-    } else if emptyFlags {
-      result = true
-    }
-
-    return result
   }
 
   private final func createMachPort(_ currentMode: CFRunLoopMode) throws -> CFMachPort {
