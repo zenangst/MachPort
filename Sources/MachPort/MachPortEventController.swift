@@ -226,12 +226,13 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
           let controller = Unmanaged<MachPortEventController>
             .fromOpaque(pointer)
             .takeUnretainedValue()
-          if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            try? controller.reload(mode: controller.currentMode)
-            return Unmanaged.passUnretained(event)
-          } else {
-            return controller.callback(proxy, type, event)
+          if let machPort = controller.machPort,
+              type == .tapDisabledByTimeout ||
+              type == .tapDisabledByUserInput {
+            CGEvent.tapEnable(tap: machPort, enable: true)
           }
+
+          return controller.callback(proxy, type, event)
         }
         return Unmanaged.passUnretained(event)
       }, userInfo: userInfo) else {
