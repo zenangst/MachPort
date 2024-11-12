@@ -10,11 +10,6 @@ public class MachPortEventPublisher {
 }
 
 public final class MachPortEventController: MachPortEventPublisher, @unchecked Sendable {
-  static let allLhs = UInt64(NX_DEVICELCTLKEYMASK) |
-                      UInt64(NX_DEVICELALTKEYMASK) |
-                      UInt64(NX_DEVICELCMDKEYMASK) |
-                      UInt64(NX_DEVICELSHIFTKEYMASK) |
-                      CGEventFlags.maskSecondaryFn.rawValue
   private(set) public var eventSource: CGEventSource!
 
   private var previousId: UUID?
@@ -183,12 +178,11 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     }
 
     let result = Unmanaged.passUnretained(cgEvent)
-    let lhs = (cgEvent.flags.rawValue & Self.allLhs) != 0 || cgEvent.flags == CGEventFlags.maskNonCoalesced
     let newEvent = MachPortEvent(
       id: id,
       event: cgEvent, eventSource: eventSource,
       isRepeat: isRepeat,
-      lhs: lhs, type: type,
+      type: type,
       result: result)
 
     if let onAllEventChange {
