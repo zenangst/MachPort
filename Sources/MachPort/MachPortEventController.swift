@@ -2,6 +2,14 @@ import Carbon
 import Cocoa
 import os
 
+public enum MachPortError: Error {
+  case failedToCreateCGEventSource
+  case failedToCreateCFRunLoopSource
+  case failedToCreateMachPort
+  case failedToCreateKeyCode(Int)
+  case failedToCreateEvent
+}
+
 public class MachPortEventPublisher {
   @Published public internal(set) var flagsChanged: CGEventFlags?
   @Published public internal(set) var event: MachPortEvent?
@@ -94,15 +102,15 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
 
   public func createEvent(_ key: Int, type: CGEventType, flags: CGEventFlags,
                           tapLocation: CGEventTapLocation = .cghidEventTap,
-                          configure: (CGEvent) -> Void = { _ in }) throws -> CGEvent {
+                          configure: (CGEvent) -> Void = { _ in }) throws(MachPortError) -> CGEvent {
     guard let cgKeyCode = CGKeyCode(exactly: key) else {
-      throw MachPortError.failedToCreateKeyCode(key)
+      throw .failedToCreateKeyCode(key)
     }
 
     guard let cgEvent = CGEvent(keyboardEventSource: eventSource,
                                 virtualKey: cgKeyCode,
                                 keyDown: type == .keyDown) else {
-      throw MachPortError.failedToCreateEvent
+      throw .failedToCreateEvent
     }
 
     cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
@@ -207,7 +215,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
     return newEvent.result
   }
 
-  private final func createMachPort(_ currentMode: CFRunLoopMode) throws -> CFMachPort {
+  private final func createMachPort(_ currentMode: CFRunLoopMode) throws(MachPortError) -> CFMachPort {
     let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
 
     guard let machPort = CGEvent.tapCreate(
@@ -230,7 +238,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
         }
         return Unmanaged.passUnretained(event)
       }, userInfo: userInfo) else {
-      throw MachPortError.failedToCreateMachPort
+      throw .failedToCreateMachPort
     }
     return machPort
   }

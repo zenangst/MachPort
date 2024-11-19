@@ -1,4 +1,4 @@
-// swift-tools-version:5.6
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -8,9 +8,7 @@ let package = Package(
     .library(name: "MachPort", targets: ["MachPort"]),
   ],
   targets: [
-    .target(
-      name: "MachPort",
-      dependencies: [])
+    .target(name: "MachPort", dependencies: [])
   ]
 )
 
