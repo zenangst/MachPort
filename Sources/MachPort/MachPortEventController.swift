@@ -122,6 +122,20 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   }
 
   @discardableResult
+  public func post(_ flags: CGEventFlags, tapLocation: CGEventTapLocation = .cghidEventTap) throws -> CGEvent {
+    guard let cgEvent = CGEvent(source: eventSource) else {
+      throw MachPortError.failedToCreateEvent
+    }
+
+    cgEvent.type = .flagsChanged
+    cgEvent.flags = flags
+    cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
+    cgEvent.post(tap: tapLocation)
+
+    return cgEvent
+  }
+
+  @discardableResult
   public func post(_ key: Int, type: CGEventType, flags: CGEventFlags,
                    tapLocation: CGEventTapLocation = .cghidEventTap,
                    configure: (CGEvent) -> Void = { _ in }) throws -> CGEvent {
