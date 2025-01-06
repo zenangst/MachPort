@@ -141,9 +141,16 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
                    configure: (CGEvent) -> Void = { _ in }) throws -> CGEvent {
     let cgEvent = try createEvent(key, type: type, flags: flags,
                                   tapLocation: tapLocation, configure: configure)
-    cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
     cgEvent.post(tap: tapLocation)
 
+    return cgEvent
+  }
+
+  @discardableResult
+  public func repost(_ machPortEvent: MachPortEvent, tapLocation: CGEventTapLocation = .cghidEventTap) -> CGEvent {
+    let cgEvent = machPortEvent.event
+    cgEvent.setIntegerValueField(.eventSourceUserData, value: signature)
+    cgEvent.post(tap: tapLocation)
     return cgEvent
   }
 
