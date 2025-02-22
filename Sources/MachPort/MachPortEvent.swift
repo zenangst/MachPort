@@ -10,8 +10,7 @@ public final class MachPortEvent: @unchecked Sendable {
   public let type: CGEventType
   public var result: Unmanaged<CGEvent>?
 
-  internal init(id: UUID,
-                event: CGEvent, eventSource: CGEventSource?,
+  internal init(id: UUID, event: CGEvent, eventSource: CGEventSource?,
                 isRepeat: Bool, type: CGEventType,
                 result: Unmanaged<CGEvent>?) {
     self.id = id
@@ -21,6 +20,16 @@ public final class MachPortEvent: @unchecked Sendable {
     self.eventSource = eventSource
     self.type = type
     self.result = result
+  }
+
+  public init(id: UUID, event: CGEvent, isRepeat: Bool = false) {
+    self.id = id
+    self.keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+    self.isRepeat = isRepeat
+    self.event = event
+    self.eventSource = nil
+    self.type = event.type
+    self.result = nil
   }
 
   public static func empty() -> MachPortEvent? {
