@@ -20,13 +20,16 @@ public class MachPortEventPublisher {
 public final class MachPortEventController: MachPortEventPublisher, @unchecked Sendable {
   private(set) public var eventSource: CGEventSource!
 
-  private var previousId: UUID?
-  private var machPort: CFMachPort?
-  private var runLoopSource: CFRunLoopSource?
-  private var currentMode: CFRunLoopMode = .commonModes
+  public var ignoreNextKeyRepeat: Bool = false
   public var onEventChange: ((MachPortEvent) -> Void)? = nil
   public var onFlagsChanged: ((MachPortEvent) -> Void)? = nil
   public var onAllEventChange: ((MachPortEvent) -> Void)? = nil
+
+  private var previousId: UUID?
+  private var machPort: CFMachPort?
+  private var previousCGEvent: CGEvent?
+  private var runLoopSource: CFRunLoopSource?
+  private var currentMode: CFRunLoopMode = .commonModes
 
   private let eventsOfInterest: CGEventMask
   private let eventSourceId: CGEventSourceStateID
@@ -179,11 +182,23 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
 
   private final func callback(_ proxy: CGEventTapProxy, _ type: CGEventType,
                               _ cgEvent: CGEvent) -> Unmanaged<CGEvent>? {
+    defer { previousCGEvent = cgEvent }
+
+    let isRepeat = cgEvent.getIntegerValueField(.keyboardEventAutorepeat) == 1
+
+    if isRepeat != (cgEvent.getIntegerValueField(.keyboardEventAutorepeat) == 1) {
+      ignoreNextKeyRepeat = false
+    } else if ignoreNextKeyRepeat && isRepeat {
+      return Unmanaged.passUnretained(cgEvent)
+    } else if cgEvent.type != .keyDown {
+      ignoreNextKeyRepeat = false
+      previousCGEvent = nil
+    }
+
     if cgEvent.getIntegerValueField(.eventSourceUserData) == signature {
       return Unmanaged.passUnretained(cgEvent)
     }
 
-    let isRepeat = cgEvent.getIntegerValueField(.keyboardEventAutorepeat) == 1
     let id: UUID
 
     switch cgEvent.type {
