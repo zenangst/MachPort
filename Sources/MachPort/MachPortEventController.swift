@@ -86,6 +86,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   }
 
   public func stop(in runLoop: CFRunLoop = CFRunLoopGetMain(), mode: CFRunLoopMode) {
+    Unmanaged.passUnretained(self).release()
     CFRunLoopRemoveSource(runLoop, runLoopSource, mode)
     guard let machPort else { return }
     self.isEnabled = false
@@ -252,7 +253,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   }
 
   private final func createMachPort(_ currentMode: CFRunLoopMode) throws(MachPortError) -> CFMachPort {
-    let userInfo = UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque())
+    let userInfo = Unmanaged.passUnretained(self).toOpaque()
 
     guard let machPort = CGEvent.tapCreate(
       tap: configuration.location,
@@ -274,6 +275,7 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
         }
         return Unmanaged.passUnretained(event)
       }, userInfo: userInfo) else {
+      Unmanaged<Self>.fromOpaque(userInfo).release()
       throw .failedToCreateMachPort
     }
     return machPort
