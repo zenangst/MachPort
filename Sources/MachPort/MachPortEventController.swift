@@ -86,7 +86,6 @@ public final class MachPortEventController: MachPortEventPublisher, @unchecked S
   }
 
   public func stop(in runLoop: CFRunLoop = CFRunLoopGetMain(), mode: CFRunLoopMode) {
-    Unmanaged.passUnretained(self).release()
     CFRunLoopRemoveSource(runLoop, runLoopSource, mode)
     guard let machPort else { return }
     self.isEnabled = false
